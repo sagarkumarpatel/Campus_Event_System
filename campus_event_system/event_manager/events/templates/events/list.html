@@ -1,0 +1,81 @@
+{% extends "events/base.html" %}
+{% load static %}
+
+{% block title %}All Events{% endblock %}
+
+{% block content %}
+    <h2>Upcoming Events</h2>
+    
+    <div class="event-list">
+        {% for event in events %}
+            <div class="event-card" id="event-{{ event.id }}">
+                <h3 id="event-{{ event.id }}-title">{{ event.title }}</h3>
+                <p class="event-meta">
+                    <span class="event-date">{{ event.date|date:"F j, Y, g:i a" }}</span>
+                    <span class="event-location">{{ event.location }}</span>
+                </p>
+                <p class="event-organizer">Organized by: {{ event.organizer }}</p>
+                <p class="event-attendees">
+                    {{ event.attendees|length }} attending (Capacity: {{ event.capacity }})
+                </p>
+                
+                <div class="event-actions">
+                    <button class="btn rsvp-btn" onclick="showRsvpForm('{{ event.id }}')">RSVP</button>
+                    <div id="rsvp-form-{{ event.id }}" class="rsvp-form" style="display: none;">
+                        <input type="email" id="email-{{ event.id }}" placeholder="Your email" required>
+                        <button class="btn" type="button" onclick="submitRsvp('{{ event.id }}')">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p class="no-events">No upcoming events found.</p>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showRsvpForm(eventId) {
+        document.getElementById(`rsvp-form-${eventId}`).style.display = 'block';
+    }
+
+    async function submitRsvp(eventId) {
+        const email = document.getElementById(`email-${eventId}`).value;
+        const eventTitle = document.getElementById(`event-${eventId}-title`).textContent;
+        
+        if (!email) {
+            alert('Please enter your email');
+            return;
+        }
+
+        try {
+            // 1. Save to database
+            const response = await fetch(`/rsvp/${eventId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `email=${encodeURIComponent(email)}`
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                // 2. Show confirmation
+                alert('RSVP confirmed! Redirecting to email...');
+                
+                // 3. Redirect to Gmail
+                window.location.href = `https://mail.google.com/mail/?view=cm&fs=1&to=organizer@example.com&su=RSVP%20for%20${encodeURIComponent(eventTitle)}&body=My%20email%20is%3A%20${encodeURIComponent(email)}`;
+                
+                // 4. Count updates automatically on next page load
+            } else {
+                alert(result.message || 'RSVP failed');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error processing RSVP - please try again');
+        }
+    }
+</script>
+{% endblock %}

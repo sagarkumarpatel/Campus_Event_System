@@ -1,0 +1,79 @@
+{% extends "events/base.html" %}
+{% load static %}
+
+{% block title %}{{ event.title }}{% endblock %}
+
+{% block content %}
+    <article class="event-detail">
+        <h2>{{ event.title }}</h2>
+        
+        <div class="event-meta">
+            <span class="event-date">{{ event.date|date:"F j, Y, g:i a" }}</span>
+            <span class="event-location">{{ event.location }}</span>
+        </div>
+        
+        <div class="event-description">
+            {{ event.description|linebreaks }}
+        </div>
+        
+        <div class="event-stats">
+            <p>
+                <strong>{{ event.attendees|length }}</strong> attending 
+                (Capacity: <strong>{{ event.capacity }}</strong>)
+            </p>
+            <p>Organized by: <strong>{{ event.organizer }}</strong></p>
+        </div>
+        
+        <div class="event-actions">
+            <button class="btn rsvp-btn" onclick="showRsvpForm('{{ event.id }}')">RSVP</button>
+            <div id="rsvp-form-{{ event.id }}" class="rsvp-form" style="display: none;">
+                <input type="email" id="email-{{ event.id }}" placeholder="Your email" required>
+                <button class="btn" onclick="submitRsvp('{{ event.id }}')">Confirm</button>
+            </div>
+        </div>
+    </article>
+    
+    <a href="/" class="btn back-link">← Back to all events</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Reuse the same RSVP functions from list.html
+    function showRsvpForm(eventId) {
+        document.getElementById(`rsvp-form-${eventId}`).style.display = 'flex';
+    }
+
+    function submitRsvp(eventId) {
+        const email = document.getElementById(`email-${eventId}`).value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        if (!email) {
+            alert('Please enter your email');
+            return;
+        }
+
+        fetch(`/rsvp/${eventId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: `email=${encodeURIComponent(email)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('RSVP confirmed!');
+                document.getElementById(`rsvp-form-${eventId}`).style.display = 'none';
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error processing RSVP');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing RSVP');
+        });
+    }
+</script>
+{% endblock %}
