@@ -254,4 +254,4 @@ Coming soon...
 
 ## 📬 Contact
 
-Created by [Sagar Kumar Patel] — feel free to reach out for feedback or collaboration!
+Created by [] — feel free to reach out for feedback or collaboration!
